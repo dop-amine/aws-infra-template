@@ -1,0 +1,21 @@
+{
+  "[terraform]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    "files.trimTrailingWhitespace": true,
+    "editor.formatOnSave": true
+  },
+  "terraform.format": {
+    "ignoreExtensionsOnSave": [],
+    "formatOnSave": true,
+    "ignoreFilesOnSave": []
+  },
+  "terraform.languageServer": {
+    "external": true,
+    "args": ["serve"],
+    "pathToBinary": "",
+    "maxNumberOfProblems": 100,
+    "trace.server": "off",
+    "experimentalFeatures": {}
+  }
+}
