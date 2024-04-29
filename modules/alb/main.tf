@@ -109,7 +109,7 @@ resource "aws_lb_listener_rule" "rule" {
   for_each = var.services
 
   listener_arn = aws_lb_listener.https.arn
-  priority     = 100 // Ensure priority uniqueness if applicable
+  priority     = 100 + index(keys(var.services), each.key)
   action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.service_tg[each.key].arn
