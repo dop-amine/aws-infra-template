@@ -45,22 +45,24 @@ or run `./scripts/setup.sh` to install necissary dependencies.
 
 ## Application Configuration
 
-When creating new service or migrating an existing service to leverage this infrastructure, the application should be containerized and have the following:
+When creating new service or migrating an existing service to leverage this infrastructure, the application should be containerized and have the following config files:
 
-- `Dockerfile` with steps to install dependencies, gems & start the Rails server.
+- `Dockerfile` with steps to install dependencies and start the app server.
 - `docker-compose.yml` to build and run the `Dockerfile` as well as the redis and other necessary containers for local development use.
 - `entrypoint.sh` script to run database setup, migrations and yarn for local use.
-- `deploy/k8s/deployment.yml` defines the deployment configuration for the Ruby on Rails application, specifying the Docker image to use, the desired number of replicas, and environmental configurations. It sets up the necessary details for deploying the application pods in EKS.
-- `deploy/k8s/service.yml` specifies the service that exposes the Rails application pods to the internal Kubernetes network or to the internet, defining how the application can be accessed within the cluster or through an external endpoint.
-- `deploy/k8s/hpa.yml` defines the Horizontal Pod Autoscaler (HPA) configuration, which automatically scales the number of pods in a deployment based on observed CPU utilization.
-- `deploy/k8s/configmap.yml` contains non-sensitive configuration data in key-value pairs that can be used by Rails application pods, such as environment variables.
-- CICD config file with instructions to build the `Dockerfile`, push the image to ECS, run migrations on the database and then deploy the container to EKS.
-- Secrets in the config files will be stored in AWS Systems Manager Parameter Store and injected during deployment.
+- `deploy/k8s/app/deployment.yml` defines the deployment configuration for the Ruby on Rails application, specifying the Docker image to use, the desired number of replicas, and environmental configurations. It sets up the necessary details for deploying the application pods in EKS.
+- `deploy/k8s/app/service.yml` specifies the service that exposes the Rails application pods to the internal Kubernetes network or to the internet, defining how the application can be accessed within the cluster or through an external endpoint.
+- `deploy/k8s/app/hpa.yml` defines the Horizontal Pod Autoscaler (HPA) configuration, which automatically scales the number of pods in a deployment based on observed CPU utilization.
+- `deploy/k8s/app/configmap.yml` contains non-sensitive configuration data in key-value pairs that can be used by Rails application pods, such as environment variables.
+- `deploy/k8s/namespace/namespace.yml` defines the Kubernetes namespace for the application, which isolates the resources and objects created for the application from other applications in the cluster.
+- `deploy/k8s/core/deployment.yml` defines the deployment configuration for the CoreDNS service, which provides DNS resolution for the Kubernetes cluster.
+- `.github/workflows/deploy.yml` GitHub Actions workflow file that automates the deployment process, including building the Docker image, pushing it to ECR, running migrations, and deploying the application to EKS.
+- Secrets will be stored in AWS Secrets Manager and injected as environment variables during deployment.
 
-You can use the k8s deployment file examples below, replacing `app` with your app name, adding your required environment variables and modifying the resources as needed:
+You can use the examples below, replacing `app` with your app name, adding your required environment variables and modifying the resources as needed:
 
 `deploy/k8s/app/configmap.yml`
-```
+```yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -71,7 +73,7 @@ data:
 ```
 
 `deploy/k8s/app/deployment.yml`
-```
+```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -113,7 +115,7 @@ spec:
 ```
 
 `deploy/k8s/app/hpa.yml`
-```
+```yaml
 apiVersion: autoscaling/v2beta2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -142,7 +144,7 @@ spec:
 ```
 
 `deploy/k8s/app/service.yml`
-```
+```yaml
 apiVersion: v1
 kind: Service
 metadata:
@@ -160,13 +162,13 @@ spec:
   ports:
     - protocol: TCP
       port: 80
-      targetPort: 3000
+      targetPort: 80
   selector:
     app: app
 ```
 
 `deploy/k8s/core/deployment.yml`
-```
+```yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -203,7 +205,7 @@ spec:
 ```
 
 `deploy/k8s/namespace/namespace.yml`
-```
+```yaml
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -222,7 +224,7 @@ metadata:
 You can get started with the example Github Actions workflow below, replacing `app` with your app name:
 
 `.github/workflows/deploy.yml`
-```
+```yaml
 name: Deploy to EKS
 
 on:
@@ -322,22 +324,22 @@ jobs:
 Database connection are made through an EC2 Bastion host using AWS SSM Session Manager.
 
 First install the AWS CLI and Session Manager Plugin:
-```
+```bash
 brew install awscli session-manager-plugin
 ```
 
 Configure the AWS CLI with your IAM user credentials and region:
-```
+```bash
 aws configure
 ```
 
 Start a port forwarding session to the Bastion host:
-```
+```bash
 aws ssm start-session --target <instance-id-of-bastion-host> --document-name AWS-StartPortForwardingSession --parameters '{"portNumber":["3307"], "localPortNumber":["3307"]}'
 ```
 
 Connect to the database using the local forwarded port:
-```
+```bash
 mysql -h 127.0.0.1 -P 3307 -u [your-username] -p
 ```
 
